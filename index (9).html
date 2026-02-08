@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #d13438;
+    --red-dim: rgba(209,52,56,0.08);
+    --bg: #ffffff;
+    --surface: #f5f5f5;
+    --surface-2: #ebebeb;
+    --text: #1a1a1a;
+    --text-mid: #666;
+    --text-dim: #999;
+    --border: #e0e0e0;
+    --dot: rgba(0,0,0,0.03);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    background: transparent;
+  }
+
+  body {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    border-radius: 12px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+
+  .container {
+    padding: 16px 20px;
+  }
+
+  /* ── TOP BAR: header + input on one line ── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+    opacity: 0;
+    animation: fadeUp 0.45s ease forwards 0.1s;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .header-dot {
+    width: 6px; height: 6px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .header-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* Input inline */
+  .input-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: border-color 0.2s;
+  }
+  .input-box:focus-within {
+    border-color: rgba(209,52,56,0.35);
+  }
+  .note-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .note-input::placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .send-btn {
+    width: 28px; height: 28px;
+    background: var(--red-dim);
+    border: 1px solid rgba(209,52,56,0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover {
+    background: rgba(209,52,56,0.18);
+    border-color: rgba(209,52,56,0.35);
+  }
+  .send-btn:active { transform: scale(0.9); }
+  .send-btn svg {
+    width: 12px; height: 12px;
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .header-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; font-weight: 700;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .header-count span { color: var(--text); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── COURSE CHIPS ── */
+  .course-row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.45s ease forwards 0.15s;
+  }
+  .course-chip {
+    font-size: 8px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .course-chip:hover { border-color: #bbb; }
+  .course-chip.active {
+    border-color: var(--chip-color, var(--red));
+    color: var(--chip-color, var(--red));
+    background: var(--chip-bg, var(--red-dim));
+  }
+
+  /* ── NOTES: horizontal scrolling row ── */
+  .notes-track {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .notes-track::-webkit-scrollbar { height: 3px; }
+  .notes-track::-webkit-scrollbar-track { background: transparent; }
+  .notes-track::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .note-card {
+    flex-shrink: 0;
+    width: 220px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scroll-snap-align: start;
+    opacity: 0;
+    animation: fadeUp 0.35s ease forwards;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .note-card.completing {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  .note-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .note-check {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .note-check:hover {
+    border-color: var(--red);
+    background: var(--red-dim);
+  }
+  .note-check svg {
+    width: 9px; height: 9px;
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .note-check:hover svg { opacity: 0.5; }
+
+  .note-text {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text);
+    word-break: break-word;
+    flex: 1;
+  }
+
+  .note-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .note-course-tag {
+    font-size: 7px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  .note-time {
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    margin-left: auto;
+  }
+
+  /* ── EMPTY ── */
+  .empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.3s;
+  }
+  .empty-text {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ── LOADING ── */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+  }
+  .loading-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="top-bar">
+    <div class="header-brand">
+      <div class="header-dot"></div>
+      <div class="header-title">Quick Notes</div>
+    </div>
+    <div class="input-box">
+      <input type="text" class="note-input" id="noteInput" placeholder="Jot something down..." maxlength="280" />
+      <button class="send-btn" id="sendBtn" title="Add note">
+        <svg viewBox="0 0 16 16"><path d="M1 8h14M8 1l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="header-count"><span id="count">-</span></div>
+  </div>
+
+  <div class="course-row" id="courseChips"></div>
+
+  <div class="notes-track" id="notesList"></div>
+</div>
+
+<script>
+const API = 'https://web-production-8be9.up.railway.app';
+const DEMO_MODE = false;
+
+const NOTION_COLORS = {
+  gray:   { color: '#888',    bg: 'rgba(136,136,136,0.10)' },
+  red:    { color: '#d13438', bg: 'rgba(209,52,56,0.08)' },
+  blue:   { color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
+  green:  { color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
+  purple: { color: '#9333ea', bg: 'rgba(147,51,234,0.08)' },
+  orange: { color: '#ea580c', bg: 'rgba(234,88,12,0.08)' },
+  yellow: { color: '#ca8a04', bg: 'rgba(202,138,4,0.08)' },
+  pink:   { color: '#db2777', bg: 'rgba(219,39,119,0.08)' },
+  brown:  { color: '#92400e', bg: 'rgba(146,64,14,0.08)' },
+  default:{ color: '#888',    bg: 'rgba(136,136,136,0.08)' }
+};
+
+const DEMO_COURSES = [
+  { name: 'General', color: 'gray' },
+  { name: 'Industrial Relations in Europe', color: 'red' },
+  { name: 'European Economic Policy', color: 'green' },
+  { name: 'Corporate Strategy in Europe', color: 'blue' },
+  { name: "Séminaire Stratégie d'entreprise", color: 'purple' },
+  { name: 'Seminar on Current Managerial Issues', color: 'orange' }
+];
+
+const DEMO_NOTES = [
+  { id: '1', note: 'Relire article Pochet sur le dialogue social européen avant lundi', course: 'Industrial Relations in Europe', created: new Date(Date.now() - 3600000).toISOString(), done: false },
+  { id: '2', note: 'Vérifier les slides du groupe pour la présentation BE vs FI', course: 'Industrial Relations in Europe', created: new Date(Date.now() - 7200000).toISOString(), done: false },
+  { id: '3', note: "Porter's Five Forces → appliquer au cas Solvay", course: "Séminaire Stratégie d'entreprise", created: new Date(Date.now() - 18000000).toISOString(), done: false },
+  { id: '4', note: 'Chercher données Eurostat taux de syndicalisation BE/FI', course: 'European Economic Policy', created: new Date(Date.now() - 86400000).toISOString(), done: false },
+  { id: '5', note: 'Demander à Maxime les notes du cours de mardi', course: 'General', created: new Date(Date.now() - 90000000).toISOString(), done: false },
+  { id: '6', note: 'Lire chapitre 4 Grant — Resource-based view', course: 'Corporate Strategy in Europe', created: new Date(Date.now() - 172800000).toISOString(), done: false },
+];
+
+let notes = [];
+let courses = [];
+let selectedCourse = 'General';
+let courseColorMap = {};
+
+function shortName(name) {
+  if (name === 'General') return 'GEN';
+  const skip = ['in', 'on', 'de', 'des', 'of', 'the', 'la', 'le', 'les', 'du', 'et', "d'entreprise"];
+  const words = name.split(/[\s:]+/).filter(w => !skip.includes(w.toLowerCase()));
+  if (words.length <= 2) return words.map(w => w.substring(0, 3).toUpperCase()).join('');
+  return words.map(w => w[0]).join('').toUpperCase().substring(0, 5);
+}
+
+async function init() {
+  await loadCourses();
+  renderCourseChips();
+  await loadNotes();
+  document.getElementById('sendBtn').addEventListener('click', addNote);
+  document.getElementById('noteInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addNote(); }
+  });
+}
+
+async function loadCourses() {
+  if (DEMO_MODE) {
+    courses = [...DEMO_COURSES];
+  } else {
+    try {
+      const r = await fetch(`${API}/notes/courses`);
+      const data = await r.json();
+      courses = data.courses || [];
+    } catch (e) {
+      courses = [{ name: 'General', color: 'gray' }];
+    }
+  }
+  courses.forEach(c => {
+    courseColorMap[c.name] = NOTION_COLORS[c.color] || NOTION_COLORS.default;
+  });
+}
+
+function renderCourseChips() {
+  const container = document.getElementById('courseChips');
+  container.innerHTML = courses.map(c => {
+    const colors = NOTION_COLORS[c.color] || NOTION_COLORS.default;
+    return `<button class="course-chip ${c.name === selectedCourse ? 'active' : ''}"
+      data-course="${c.name}"
+      style="--chip-color:${colors.color}; --chip-bg:${colors.bg}">${shortName(c.name)}</button>`;
+  }).join('');
+  container.querySelectorAll('.course-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedCourse = chip.dataset.course;
+      container.querySelectorAll('.course-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+}
+
+async function loadNotes() {
+  const list = document.getElementById('notesList');
+  if (DEMO_MODE) { notes = [...DEMO_NOTES]; renderNotes(); return; }
+  list.innerHTML = '<div class="loading"><div class="loading-spinner"></div><div class="loading-text">Loading</div></div>';
+  try {
+    const r = await fetch(`${API}/notes`);
+    const data = await r.json();
+    notes = data.notes || [];
+    renderNotes();
+  } catch (e) {
+    list.innerHTML = '<div class="empty"><div class="empty-text">Connection error</div></div>';
+  }
+}
+
+function renderNotes() {
+  const list = document.getElementById('notesList');
+  document.getElementById('count').textContent = notes.length;
+  if (notes.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-text">No notes yet — start typing</div></div>';
+    return;
+  }
+  list.innerHTML = notes.map((n, i) => {
+    const colors = courseColorMap[n.course] || NOTION_COLORS.default;
+    return `<div class="note-card" style="animation-delay:${0.15 + i * 0.04}s" data-id="${n.id}">
+      <div class="note-card-top">
+        <div class="note-check" onclick="completeNote('${n.id}')">
+          <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5"/></svg>
+        </div>
+        <div class="note-text">${escapeHtml(n.note)}</div>
+      </div>
+      <div class="note-footer">
+        <span class="note-course-tag" style="color:${colors.color}; background:${colors.bg}">${shortName(n.course)}</span>
+        <span class="note-time">${timeAgo(n.created)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function addNote() {
+  const input = document.getElementById('noteInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  if (DEMO_MODE) {
+    notes.unshift({ id: Date.now().toString(), note: text, course: selectedCourse, created: new Date().toISOString(), done: false });
+    renderNotes();
+    return;
+  }
+  try {
+    const r = await fetch(`${API}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: text, course: selectedCourse }) });
+    const data = await r.json();
+    notes.unshift(data);
+    renderNotes();
+  } catch (e) { input.value = text; }
+}
+
+async function completeNote(id) {
+  const el = document.querySelector(`.note-card[data-id="${id}"]`);
+  if (el) { el.classList.add('completing'); await new Promise(r => setTimeout(r, 300)); }
+  notes = notes.filter(n => n.id !== id);
+  renderNotes();
+  if (!DEMO_MODE) {
+    try { await fetch(`${API}/notes/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ done: true }) }); } catch (e) {}
+  }
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return mins + 'min';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h';
+  return Math.floor(hrs / 24) + 'd';
+}
+
+init();
+</script>
+</body>
+</html>
